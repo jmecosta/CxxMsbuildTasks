@@ -2,11 +2,27 @@
 
   <PropertyGroup>
     <TargetFramework>net462</TargetFramework>
-    <OutputPath>..\..\BuildDrop\Tests\CxxTasks</OutputPath>
+    <OutputPath>..\BuildDrop\Tests\</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="CppCheckTaskTest.fs" />
+    <Compile Include="MsbuildTaskUtilsTest.fs" />
+    <Compile Include="VSSolutionUtilsTest.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="testdata\folder\file.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="testdata\project1\project1.vcxproj">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="testdata\solutionsfile.sln">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -19,7 +35,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CppCheckTask\CppCheckTask.fsproj" />
     <ProjectReference Include="..\MsbuildTaskUtils\MsbuildTaskUtils.fsproj" />
   </ItemGroup>
 

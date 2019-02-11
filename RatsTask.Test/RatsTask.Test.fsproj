@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Common\MsbuildTaskUtils\MsbuildTaskUtils.fsproj" />
+    <ProjectReference Include="..\MsbuildTaskUtils\MsbuildTaskUtils.fsproj" />
     <ProjectReference Include="..\RatsTask\RatsTask.fsproj" />
   </ItemGroup>
 
