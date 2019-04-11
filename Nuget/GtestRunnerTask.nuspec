@@ -2,7 +2,7 @@
 <package>
     <metadata>
         <id>GtestRunnerTask</id>
-        <version>1.5.10</version>
+        <version>1.5.15</version>
         <authors>jmecsoftware.com</authors>
         <owners>jmecsoftware.com</owners>
         <licenseUrl>https://github.com/jmecsoftware/sonar-cxx-msbuild-tasks/blob/master/License.txt</licenseUrl>
@@ -15,9 +15,10 @@
         <tags>C++ SonarQube</tags>
     </metadata>
     <files>
-        <file src="..\BuildDrop\GtestRunnerMSBuildTask.dll" target="build" />
+        <file src="..\BuildDrop\CxxTasks\GtestRunner\GtestRunnerMSBuildTask.dll" target="build" />
         <file src="GtestRunnerTask.targets" target="build" />
-        <file src="..\BuildDrop\FSharp*.*" target="build" exclude="**\*.xml"/>
-        <file src="..\BuildDrop\MsbuildUtilityHelpers.dll" target="build" />
+        <file src="..\BuildDrop\CxxTasks\GtestRunner\FSharp*.*" target="build" exclude="**\*.xml"/>
+        <file src="..\BuildDrop\CxxTasks\GtestRunner\BetterWin32Errors.dll" target="build" />
+        
     </files>
 </package>

@@ -118,3 +118,4 @@ ObjDrop/
 .vs/**
 /BuildDrop/Runner/CxxSonarQubeRunner.zip
 /BuildDrop/Runner/netcoreapp2.2/
+*.nupkg

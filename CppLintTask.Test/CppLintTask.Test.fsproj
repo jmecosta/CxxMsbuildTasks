@@ -20,7 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CppLintTask\CppLintTask.fsproj" />
-    <ProjectReference Include="..\MsbuildTaskUtils\MsbuildTaskUtils.fsproj" />
+    <ProjectReference Include="..\MsbuildTaskUtils\MsbuildUtilityHelpers.fsproj" />
   </ItemGroup>
 
 </Project>

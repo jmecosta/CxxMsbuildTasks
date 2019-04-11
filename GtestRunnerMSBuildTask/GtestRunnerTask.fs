@@ -18,6 +18,8 @@ open Microsoft.Build.Logging
 open Microsoft.Build.Utilities
 open Microsoft.Win32
 open MsbuildUtilityHelpers
+open System.Text
+open BetterWin32Errors
 
 type GtestXmlReport = XmlProvider<"""<?xml version="1.0" encoding="UTF-8"?>
 <testsuites tests="43" failures="0" disabled="2" errors="0" timestamp="2013-06-29T09:23:30" time="0.348" name="AllTests">
@@ -90,7 +92,19 @@ Incorrect coordsys after SetUIInputItem]]></failure>
 type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
     inherit Task()
     let logger : TaskLoggingHelper = if logger = null then new TaskLoggingHelper(this) else logger
-    let executor : CommandExecutor = new CommandExecutor(logger, int64(3500000))
+    let executor : MsbuildUtilityHelpers.CommandExecutor = new MsbuildUtilityHelpers.CommandExecutor(logger, int64(3500000))
+    let mutable testOutput = List.Empty
+
+    let EscapeToTeamcity(message:string) = 
+        message.Replace(@"\", @"/").Replace(@"//", @"/")
+                .Replace("|", "||")
+                .Replace("'", "|'")
+                .Replace("[", "|[")
+                .Replace("]", "|]")
+                .Replace("/r", "|r")
+                .Replace("/n", "|n")
+                .Replace("\r\n", "|r|n")
+
     new() = GtestRunnerMSBuildTask(null)
     member val CurrentSeed : string = "" with get, set
     member val PreviousMessage : string = "" with get, set
@@ -100,6 +114,7 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
     member val counterFile : int = 0 with get, set
     member val ToOutputData : string list = [] with get, set
     member val testFiles : string list = [] with get, set
+
 
     member val UseRelativePaths = false with get, set
 
@@ -276,6 +291,7 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
 
     member x.ProcessOutputDataReceived(e : DataReceivedEventArgs) = 
         if not(String.IsNullOrWhiteSpace(e.Data))  then
+            testOutput <- testOutput @ [e.Data]
             if Environment.GetEnvironmentVariable("TEAMCITY_PROJECT_NAME") = null || Environment.GetEnvironmentVariable("TEAMCITY_PROJECT_NAME").Equals("NOT FOUND") then
                 if e.Data.Contains("[ FAILED        ]") || e.Data.Contains("[  FAILED  ] ") || e.Data.Contains("SEH exception with code") then
                     try
@@ -312,13 +328,11 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
                 logger.LogMessage(MessageImportance.High, e.Data)
 
     member x.ExecuteTests executor =
-        let env = Map.ofList [("CPPCHECK_INPUT", x.GtestExeFile)]
-
         let mutable returncode = 0
         if not(x.Shuffle) then
             if not(this.BuildEngine = null) then
                 logger.LogMessage(sprintf "gtest: %s %s" x.GtestExeFile (x.generateCommandLineArgs ""))
-            returncode <- (executor :> ICommandExecutor).ExecuteCommand(x.GtestExeFile, (x.generateCommandLineArgs ""), env, x.ProcessOutputDataReceived, x.ProcessOutputDataReceived, Directory.GetParent(x.GtestExeFile).ToString())
+            returncode <- (executor :> ICommandExecutor).ExecuteCommand(x.GtestExeFile, (x.generateCommandLineArgs ""), Map.empty, x.ProcessOutputDataReceived, x.ProcessOutputDataReceived, Directory.GetParent(x.GtestExeFile).ToString())
             try
                 if File.Exists(x.GtestXMLReportFile) then
                     this.ParseXunitReport(x.GtestXMLReportFile,logger)
@@ -329,17 +343,17 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
                 x.CurrentSeed <- i.ToString()
                 if not(this.BuildEngine = null) then
                     logger.LogMessage(sprintf "gtest: %s %s" x.GtestExeFile (x.generateCommandLineArgs(i.ToString())))
-                returncode <- (executor :> ICommandExecutor).ExecuteCommand(x.GtestExeFile, x.generateCommandLineArgs(i.ToString()), env, x.ProcessOutputDataReceived, x.ProcessOutputDataReceived, Directory.GetParent(x.GtestExeFile).ToString())
+                returncode <- (executor :> ICommandExecutor).ExecuteCommand(x.GtestExeFile, x.generateCommandLineArgs(i.ToString()), Map.empty, x.ProcessOutputDataReceived, x.ProcessOutputDataReceived, Directory.GetParent(x.GtestExeFile).ToString())
                 if File.Exists(x.GtestXMLReportFile) then
                     this.ParseXunitReport(x.GtestXMLReportFile, logger)
 
         if returncode <> 0 then
             if this.BrakeBuild then
-                logger.LogError(sprintf "%s Exit with Return Code = %d" x.GtestExeFile returncode)
-            else
-                logger.LogWarning(sprintf "%s Exit with Return Code = %d => Turn to Warning BrakeBuild=false" x.GtestExeFile returncode)
-
-        returncode = 0          
+                let errorWin32 = Win32Exception.GetLastWin32Error()
+                let message = sprintf "Test Executable %s Failed to Execute Return Code: %s, GetLastWin32Error: %A runner configured to brake the build" x.GtestExeFile (returncode.ToString("X")) errorWin32                
+                logger.LogError(message)
+                
+        returncode        
         
     member x.TestExecutableIsFound =
         lazy(
@@ -355,24 +369,21 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
         let mutable result = not(logger.HasLoggedErrors)
         if result then
             let stopWatchTotal = Stopwatch.StartNew()
+            let mutable returnCode = 0
 
             if not(Directory.Exists(x.GtestXunitConverterOutputPath)) then
                 if this.BuildEngine <> null then
                     logger.LogMessage(sprintf "Create New Folder: %s " x.GtestXunitConverterOutputPath)
 
                 Directory.CreateDirectory(x.GtestXunitConverterOutputPath) |> ignore
-
-            if not(x.SkipSearchForFileLocation) && not(String.IsNullOrEmpty(x.SolutionPathToAnalyse)) then
-                let solutionHelper = new VSSolutionUtils()
-                let projectHelper = new VSProjectUtils()
-                let iterateOverProjectFiles(projectFile : ProjectFiles) =
-                    if this.BuildEngine <> null then
-                        logger.LogMessage(sprintf "Get Test Files in: %s Using TextSuffix: %s And ReplacementStrings: %s" projectFile.path x.TestSuffix x.PathReplacementStrings)
-                    this.testFiles <- this.testFiles @ projectHelper.GetCompilationFiles(projectFile.path, x.TestSuffix, x.PathReplacementStrings)
-                solutionHelper.GetProjectFilesFromSolutions(x.SolutionPathToAnalyse) |> Seq.iter (fun x -> iterateOverProjectFiles x)
                 
             if x.RunTests then
-                result <- x.ExecuteTests executor
+                returnCode <- x.ExecuteTests executor
+                if returnCode <> 0 then
+                    logger.LogMessage(sprintf "##teamcity[setParameter name='UTS_HAS_CRASHED' value='1']")
+                    testOutput <- List.Empty
+                    logger.LogMessage(sprintf "Running Again Tests To Confirm Crash...")
+                    returnCode <- x.ExecuteTests executor
             else 
                 for repfile in Directory.GetFiles(Directory.GetParent(this.GtestXMLReportFile).ToString(), Path.GetFileName(this.GtestXMLReportFile)) do
                     this.ParseXunitReport(repfile, logger)
@@ -382,10 +393,18 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
             else
                 logger.LogMessage(sprintf "GtestXunitConverter End: %u ms" stopWatchTotal.ElapsedMilliseconds)
 
-        if x.BrakeBuild then
-            let message = sprintf "Test Executable %s Failed to Execute, runner configured to brake the build" x.GtestExeFile
-            let tcmessage = sprintf "##teamcity[buildProblem description='%s']" message
-            logger.LogMessage(tcmessage)
+            if returnCode <> 0 then
+                let outArray = testOutput |> Seq.toArray
+                let startInd = outArray.Length - 10
+                let endInd = outArray.Length - 1
+                let builder = StringBuilder()
+                for i in startInd .. endInd do
+                    builder.AppendLine(outArray.[i]) |> ignore
+                
+                let error = Win32Exception.GetLastWin32Error()
+                let message = sprintf "Test Executable %s Failed to Execute Return Code: %s, GetLastWin32Error: %A runner configured to brake the build: Details: \r\n%s" x.GtestExeFile (returnCode.ToString("X")) error (builder.ToString())
+                let tcmessage = sprintf "##teamcity[buildProblem description='%s']" (EscapeToTeamcity(message))
+                logger.LogMessage(tcmessage)
 
         true
 

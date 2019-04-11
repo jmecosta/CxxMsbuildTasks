@@ -2,27 +2,20 @@
 
   <PropertyGroup>
     <TargetFramework>net462</TargetFramework>
-    <OutputPath>..\BuildDrop\Tests\</OutputPath>
+    <OutputPath>..\..\BuildDrop\Tests\CxxTasks</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="MsbuildTaskUtilsTest.fs" />
-    <Compile Include="VSSolutionUtilsTest.fs" />
+    <Compile Include="GtestXunitConverterTaskTest.fs" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="testdata\folder\file.txt">
+    <Content Include="xunit-report.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="testdata\project1\project1.vcxproj">
+    <Content Include="xunit-report.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="testdata\solutionsfile.sln">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -35,7 +28,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MsbuildTaskUtils\MsbuildTaskUtils.fsproj" />
+    <ProjectReference Include="..\GtestXunitConverterTask\GtestRunnerMSBuildTask.fsproj" />
+    <ProjectReference Include="..\MsbuildTaskUtils\MsbuildUtilityHelpers.fsproj" />
   </ItemGroup>
 
 </Project>

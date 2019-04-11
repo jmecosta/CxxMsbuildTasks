@@ -23,7 +23,7 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "RatsTask.Test", "RatsTask.T
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "VeraTask.Test", "VeraTask.Test\VeraTask.Test.fsproj", "{9C415DD8-24CF-413E-A78C-B39125E38B65}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GtestXunitConverterTask.Test", "GtestXunitConverterTask.Test\GtestXunitConverterTask.Test.fsproj", "{E4587340-6DFF-4419-8C0F-712CCD0C94A4}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GtestRunnerMSBuildTask.Test", "GtestXunitConverterTask.Test\GtestRunnerMSBuildTask.Test.fsproj", "{E4587340-6DFF-4419-8C0F-712CCD0C94A4}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CppTasks", "CppTasks", "{9AC7529B-D6E4-4FF6-B3DC-6305F99B6C5C}"
 EndProject
@@ -39,13 +39,13 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "CppLintTask", "CppLintTask\
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "CppLintTask.Test", "CppLintTask.Test\CppLintTask.Test.fsproj", "{AD30BC22-20CB-4E91-898B-A22116486C95}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GtestXunitConverterTask", "GtestXunitConverterTask\GtestXunitConverterTask.fsproj", "{BFAAB356-F67D-40A7-9526-2B279F458E87}"
-EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "InspectorTask", "InspectorTask\InspectorTask.fsproj", "{1E2ADB20-40C8-421D-BBC5-935485740C52}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "MsbuildTaskUtils", "MsbuildTaskUtils\MsbuildTaskUtils.fsproj", "{4B95BF5B-D223-49E6-BD17-A2E5F86F6012}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "MsbuildUtilityHelpers", "MsbuildTaskUtils\MsbuildUtilityHelpers.fsproj", "{4B95BF5B-D223-49E6-BD17-A2E5F86F6012}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "MsbuildTaskUtils.Test", "MsbuildTaskUtils.Test\MsbuildTaskUtils.Test.fsproj", "{52E94DD0-80AF-4CB1-8A23-5B6409D21B65}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "MsbuildUtilityHelpers.Test", "MsbuildTaskUtils.Test\MsbuildUtilityHelpers.Test.fsproj", "{52E94DD0-80AF-4CB1-8A23-5B6409D21B65}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GtestRunnerMSBuildTask", "GtestRunnerMSBuildTask\GtestRunnerMSBuildTask.fsproj", "{0F07FD19-1724-4B18-AC05-C1563A36DD81}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -89,10 +89,6 @@ Global
 		{AD30BC22-20CB-4E91-898B-A22116486C95}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AD30BC22-20CB-4E91-898B-A22116486C95}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AD30BC22-20CB-4E91-898B-A22116486C95}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BFAAB356-F67D-40A7-9526-2B279F458E87}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BFAAB356-F67D-40A7-9526-2B279F458E87}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BFAAB356-F67D-40A7-9526-2B279F458E87}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BFAAB356-F67D-40A7-9526-2B279F458E87}.Release|Any CPU.Build.0 = Release|Any CPU
 		{1E2ADB20-40C8-421D-BBC5-935485740C52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{1E2ADB20-40C8-421D-BBC5-935485740C52}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1E2ADB20-40C8-421D-BBC5-935485740C52}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -105,6 +101,10 @@ Global
 		{52E94DD0-80AF-4CB1-8A23-5B6409D21B65}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{52E94DD0-80AF-4CB1-8A23-5B6409D21B65}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{52E94DD0-80AF-4CB1-8A23-5B6409D21B65}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0F07FD19-1724-4B18-AC05-C1563A36DD81}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0F07FD19-1724-4B18-AC05-C1563A36DD81}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0F07FD19-1724-4B18-AC05-C1563A36DD81}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0F07FD19-1724-4B18-AC05-C1563A36DD81}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -119,8 +119,8 @@ Global
 		{0809C737-7D96-4653-8342-EA1E32CB3469} = {9AC7529B-D6E4-4FF6-B3DC-6305F99B6C5C}
 		{575140D7-D8EE-49BA-800C-9C821230DD7E} = {9AC7529B-D6E4-4FF6-B3DC-6305F99B6C5C}
 		{AD30BC22-20CB-4E91-898B-A22116486C95} = {9AC7529B-D6E4-4FF6-B3DC-6305F99B6C5C}
-		{BFAAB356-F67D-40A7-9526-2B279F458E87} = {9AC7529B-D6E4-4FF6-B3DC-6305F99B6C5C}
 		{1E2ADB20-40C8-421D-BBC5-935485740C52} = {9AC7529B-D6E4-4FF6-B3DC-6305F99B6C5C}
+		{0F07FD19-1724-4B18-AC05-C1563A36DD81} = {9AC7529B-D6E4-4FF6-B3DC-6305F99B6C5C}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E6895CA3-350F-41E8-8776-CBEC4503902B}

@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MsbuildTaskUtils\MsbuildTaskUtils.fsproj" />
+    <ProjectReference Include="..\MsbuildTaskUtils\MsbuildUtilityHelpers.fsproj" />
     <ProjectReference Include="..\VeraTask\VeraTask.fsproj" />
   </ItemGroup>
 
