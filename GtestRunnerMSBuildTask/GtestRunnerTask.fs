@@ -348,9 +348,8 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
                     this.ParseXunitReport(x.GtestXMLReportFile, logger)
 
         if returncode <> 0 then
-            if this.BrakeBuild then
-                let errorWin32 = Win32Exception.GetLastWin32Error()
-                let message = sprintf "Test Executable %s Failed to Execute Return Code: %s, GetLastWin32Error: %A runner configured to brake the build" x.GtestExeFile (returncode.ToString("X")) errorWin32                
+            if this.BrakeBuild then                
+                let message = sprintf "Test Executable %s Failed to Execute Return Code: %s runner configured to brake the build" x.GtestExeFile (returncode.ToString("X"))  
                 logger.LogError(message)
                 
         returncode        
@@ -380,10 +379,12 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
             if x.RunTests then
                 returnCode <- x.ExecuteTests executor
                 if returnCode <> 0 then
-                    logger.LogMessage(sprintf "##teamcity[setParameter name='UTS_HAS_CRASHED' value='1']")
+                    logger.LogMessage(sprintf "##teamcity[buildStatisticValue key='UTS_HAS_CRASHED' value='1']")
                     testOutput <- List.Empty
                     logger.LogMessage(sprintf "Running Again Tests To Confirm Crash...")
                     returnCode <- x.ExecuteTests executor
+                else
+                    logger.LogMessage(sprintf "##teamcity[buildStatisticValue key='UTS_HAS_CRASHED' value='0']")
             else 
                 for repfile in Directory.GetFiles(Directory.GetParent(this.GtestXMLReportFile).ToString(), Path.GetFileName(this.GtestXMLReportFile)) do
                     this.ParseXunitReport(repfile, logger)
@@ -401,8 +402,7 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
                 for i in startInd .. endInd do
                     builder.AppendLine(outArray.[i]) |> ignore
                 
-                let error = Win32Exception.GetLastWin32Error()
-                let message = sprintf "Test Executable %s Failed to Execute Return Code: %s, GetLastWin32Error: %A runner configured to brake the build: Details: \r\n%s" x.GtestExeFile (returnCode.ToString("X")) error (builder.ToString())
+                let message = sprintf "Test Executable %s Failed to Execute Return Code: %s, runner configured to brake the build: Details: \r\n%s" x.GtestExeFile (returnCode.ToString("X")) (builder.ToString())
                 let tcmessage = sprintf "##teamcity[buildProblem description='%s']" (EscapeToTeamcity(message))
                 logger.LogMessage(tcmessage)
 
