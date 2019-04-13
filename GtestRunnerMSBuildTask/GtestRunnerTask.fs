@@ -94,6 +94,16 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
     let logger : TaskLoggingHelper = if logger = null then new TaskLoggingHelper(this) else logger
     let executor : MsbuildUtilityHelpers.CommandExecutor = new MsbuildUtilityHelpers.CommandExecutor(logger, int64(3500000))
     let mutable testOutput = List.Empty
+    let mutable firstRunOutput = ""
+
+    let GetLastLinesInRun() =
+        let outArray = testOutput |> Seq.toArray
+        let startInd = outArray.Length - 10
+        let endInd = outArray.Length - 1
+        let builder = StringBuilder()
+        for i in startInd .. endInd do
+            builder.AppendLine(outArray.[i]) |> ignore
+        builder.ToString()
 
     let EscapeToTeamcity(message:string) = 
         message.Replace(@"\", @"/").Replace(@"//", @"/")
@@ -377,14 +387,18 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
                 Directory.CreateDirectory(x.GtestXunitConverterOutputPath) |> ignore
                 
             if x.RunTests then
+                let fileName = Path.GetFileNameWithoutExtension(x.GtestExeFile).ToUpper()
                 returnCode <- x.ExecuteTests executor
                 if returnCode <> 0 then
-                    logger.LogMessage(sprintf "##teamcity[buildStatisticValue key='UTS_HAS_CRASHED' value='1']")
+                    logger.LogMessage(sprintf "##teamcity[buildStatisticValue key='%s_UTS_HAS_CRASHED' value='1']" fileName)
+                    firstRunOutput <- GetLastLinesInRun()
                     testOutput <- List.Empty
+                    let message = sprintf "First Run %s Failed to Execute Return Code: %s, Details: \r\n%s" x.GtestExeFile (returnCode.ToString("X")) firstRunOutput
+                    logger.LogMessage(message)
                     logger.LogMessage(sprintf "Running Again Tests To Confirm Crash...")
                     returnCode <- x.ExecuteTests executor
                 else
-                    logger.LogMessage(sprintf "##teamcity[buildStatisticValue key='UTS_HAS_CRASHED' value='0']")
+                    logger.LogMessage(sprintf "##teamcity[buildStatisticValue key='%s_UTS_HAS_CRASHED' value='0']" fileName)
             else 
                 for repfile in Directory.GetFiles(Directory.GetParent(this.GtestXMLReportFile).ToString(), Path.GetFileName(this.GtestXMLReportFile)) do
                     this.ParseXunitReport(repfile, logger)
@@ -395,14 +409,8 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
                 logger.LogMessage(sprintf "GtestXunitConverter End: %u ms" stopWatchTotal.ElapsedMilliseconds)
 
             if returnCode <> 0 then
-                let outArray = testOutput |> Seq.toArray
-                let startInd = outArray.Length - 10
-                let endInd = outArray.Length - 1
-                let builder = StringBuilder()
-                for i in startInd .. endInd do
-                    builder.AppendLine(outArray.[i]) |> ignore
-                
-                let message = sprintf "Test Executable %s Failed to Execute Return Code: %s, runner configured to brake the build: Details: \r\n%s" x.GtestExeFile (returnCode.ToString("X")) (builder.ToString())
+                let lastOutput = GetLastLinesInRun() 
+                let message = sprintf "Test Executable %s Failed to Execute Return Code: %s, runner configured to brake the build: Details: \r\nFirst Run:\r\n%s\r\nSecond Run:\r\n%s" x.GtestExeFile (returnCode.ToString("X")) firstRunOutput lastOutput
                 let tcmessage = sprintf "##teamcity[buildProblem description='%s']" (EscapeToTeamcity(message))
                 logger.LogMessage(tcmessage)
 
