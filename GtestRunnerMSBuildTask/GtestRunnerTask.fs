@@ -95,12 +95,18 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
     let executor : MsbuildUtilityHelpers.CommandExecutor = new MsbuildUtilityHelpers.CommandExecutor(logger, int64(3500000))
     let mutable testOutput = List.Empty
     let mutable firstRunOutput = ""
+    let mutable allTestsHaveExecuted = false
 
     let GetLastLinesInRun() =
+
         let outArray = testOutput |> Seq.toArray
-        let startInd = outArray.Length - 10
+        let minIndex =  if outArray.Length < 10 then 0 else outArray.Length - 10
+
+        let startInd = minIndex
         let endInd = outArray.Length - 1
         let builder = StringBuilder()
+        if minIndex = 0 then
+            builder.AppendLine("Looks Like Test Runner Produced Less than 10 Lines for the Failure... Check BuildLog") |> ignore
         for i in startInd .. endInd do
             builder.AppendLine(outArray.[i]) |> ignore
         builder.ToString()
@@ -303,6 +309,9 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
         if not(String.IsNullOrWhiteSpace(e.Data))  then
             testOutput <- testOutput @ [e.Data]
             if Environment.GetEnvironmentVariable("TEAMCITY_PROJECT_NAME") = null || Environment.GetEnvironmentVariable("TEAMCITY_PROJECT_NAME").Equals("NOT FOUND") then
+                if e.Data.Contains("[----------] Global test environment tear-down") then
+                    allTestsHaveExecuted <- true
+                
                 if e.Data.Contains("[ FAILED        ]") || e.Data.Contains("[  FAILED  ] ") || e.Data.Contains("SEH exception with code") then
                     try
                         if e.Data.Contains("SEH exception with code") then
@@ -339,6 +348,7 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
 
     member x.ExecuteTests executor =
         let mutable returncode = 0
+        allTestsHaveExecuted <- false
         if not(x.Shuffle) then
             if not(this.BuildEngine = null) then
                 logger.LogMessage(sprintf "gtest: %s %s" x.GtestExeFile (x.generateCommandLineArgs ""))
@@ -390,13 +400,28 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
                 let fileName = Path.GetFileNameWithoutExtension(x.GtestExeFile).ToUpper()
                 returnCode <- x.ExecuteTests executor
                 if returnCode <> 0 then
-                    logger.LogMessage(sprintf "##teamcity[buildStatisticValue key='%s_UTS_HAS_CRASHED' value='1']" fileName)
-                    firstRunOutput <- GetLastLinesInRun()
-                    testOutput <- List.Empty
-                    let message = sprintf "First Run %s Failed to Execute Return Code: %s, Details: \r\n%s" x.GtestExeFile (returnCode.ToString("X")) firstRunOutput
-                    logger.LogMessage(message)
-                    logger.LogMessage(sprintf "Running Again Tests To Confirm Crash...")
-                    returnCode <- x.ExecuteTests executor
+                    if returnCode = 1 then
+                        firstRunOutput <- GetLastLinesInRun()
+                        testOutput <- List.Empty
+                        let message = sprintf "First Run %s Failed to Execute Return Code: 1, Details: \r\n%s" x.GtestExeFile firstRunOutput
+                        logger.LogMessage(message)
+                        logger.LogMessage(sprintf "Running Again Tests To Test is failing...")
+                        returnCode <- x.ExecuteTests executor
+                    else
+                        if allTestsHaveExecuted then
+                            let message = sprintf "Run %s Failed to Execute Return Code: %s, Details: \r\n%s" x.GtestExeFile (returnCode.ToString("X")) firstRunOutput
+                            logger.LogMessage(message)
+                            let message = sprintf "It will ignore this failure, since all tests have executed. If a test has failed it will show in Teamcity\r\n"
+                            logger.LogMessage(message)                            
+                            returnCode <- 0
+                        else
+                            logger.LogMessage(sprintf "##teamcity[buildStatisticValue key='%s_UTS_HAS_CRASHED' value='1']" fileName)
+                            firstRunOutput <- GetLastLinesInRun()
+                            testOutput <- List.Empty
+                            let message = sprintf "First Run %s Failed to Execute Return Code: %s, Details: \r\n%s" x.GtestExeFile (returnCode.ToString("X")) firstRunOutput
+                            logger.LogMessage(message)
+                            logger.LogMessage(sprintf "Running Again Tests To Confirm Crash...")
+                            returnCode <- x.ExecuteTests executor
                 else
                     logger.LogMessage(sprintf "##teamcity[buildStatisticValue key='%s_UTS_HAS_CRASHED' value='0']" fileName)
             else 
@@ -409,10 +434,15 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
                 logger.LogMessage(sprintf "GtestXunitConverter End: %u ms" stopWatchTotal.ElapsedMilliseconds)
 
             if returnCode <> 0 then
-                let lastOutput = GetLastLinesInRun() 
-                let message = sprintf "Test Executable %s Failed to Execute Return Code: %s, runner configured to brake the build: Details: \r\nFirst Run:\r\n%s\r\nSecond Run:\r\n%s" x.GtestExeFile (returnCode.ToString("X")) firstRunOutput lastOutput
-                let tcmessage = sprintf "##teamcity[buildProblem description='%s']" (EscapeToTeamcity(message))
-                logger.LogMessage(tcmessage)
+                if returnCode = 1 then
+                    let lastOutput = GetLastLinesInRun() 
+                    let message = sprintf "Test Executable %s Failed to Execute Return Code: 1, this means tests are failing and reported to teamcity. Mute can be done there." x.GtestExeFile
+                    logger.LogMessage(message)
+                else
+                    let lastOutput = GetLastLinesInRun() 
+                    let message = sprintf "Test Executable %s Failed to Execute Return Code: %s, runner configured to brake the build: Details: \r\nFirst Run:\r\n%s\r\nSecond Run:\r\n%s" x.GtestExeFile (returnCode.ToString("X")) firstRunOutput lastOutput
+                    let tcmessage = sprintf "##teamcity[buildProblem description='%s']" (EscapeToTeamcity(message))
+                    logger.LogMessage(tcmessage)
 
         true
 
