@@ -96,17 +96,24 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
     let mutable testOutput = List.Empty
     let mutable firstRunOutput = ""
     let mutable allTestsHaveExecuted = false
+    let runningInTeamcity = Environment.GetEnvironmentVariable("TEAMCITY_PROJECT_NAME") = null || Environment.GetEnvironmentVariable("TEAMCITY_PROJECT_NAME").Equals("NOT FOUND")
 
     let GetLastLinesInRun() =
 
         let outArray = testOutput |> Seq.toArray
-        let minIndex =  if outArray.Length < 10 then 0 else outArray.Length - 10
+        let minIndex = 
+            if outArray.Length < 10 then
+                0
+            else
+                outArray.Length - 10
 
         let startInd = minIndex
         let endInd = outArray.Length - 1
         let builder = StringBuilder()
+
         if minIndex = 0 then
             builder.AppendLine("Looks Like Test Runner Produced Less than 10 Lines for the Failure... Check BuildLog") |> ignore
+
         for i in startInd .. endInd do
             builder.AppendLine(outArray.[i]) |> ignore
         builder.ToString()
@@ -308,7 +315,7 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
     member x.ProcessOutputDataReceived(e : DataReceivedEventArgs) = 
         if not(String.IsNullOrWhiteSpace(e.Data))  then
             testOutput <- testOutput @ [e.Data]
-            if Environment.GetEnvironmentVariable("TEAMCITY_PROJECT_NAME") = null || Environment.GetEnvironmentVariable("TEAMCITY_PROJECT_NAME").Equals("NOT FOUND") then
+            if runningInTeamcity then
                 if e.Data.Contains("[----------] Global test environment tear-down") then
                     allTestsHaveExecuted <- true
                 
