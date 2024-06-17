@@ -19,7 +19,6 @@ open Microsoft.Build.Utilities
 open Microsoft.Win32
 open MsbuildUtilityHelpers
 open System.Text
-open BetterWin32Errors
 
 type GtestXmlReport = XmlProvider<"""<?xml version="1.0" encoding="UTF-8"?>
 <testsuites tests="43" failures="0" disabled="2" errors="0" timestamp="2013-06-29T09:23:30" time="0.348" name="AllTests">
@@ -338,7 +337,7 @@ type GtestRunnerMSBuildTask(logger : TaskLoggingHelper) as this =
                             x.Expected <- ""
                             x.Actual <- ""
                             x.PreviousMessage <- ""
-                    with :? System.Exception as e ->
+                    with e ->
                         logger.LogWarning(e.Message + " " + e.StackTrace + "\n" + e.Source + "\n" +  e.TargetSite.ToString() + "\n" +  e.HelpLink )                                                                                      
                 else
                     if e.Data.Contains("Expected: ") then
